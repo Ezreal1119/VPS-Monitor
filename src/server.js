@@ -1,15 +1,18 @@
 // Read-only VPS monitor.
 // HOST defaults to 127.0.0.1, PORT defaults to 8787.
-// Set MONITOR_TOKEN to require a token on every /api request.
+// MONITOR_TOKEN, HOST, and PORT can live in the project .env file.
+// Variables already set in the environment take precedence.
 
 import { timingSafeEqual } from 'node:crypto';
 import fs from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadEnv } from './env.js';
 import { startSampler } from './sampler.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+loadEnv(path.join(root, '.env'));
 const publicDir = path.join(root, 'public');
 const pkg = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
 
