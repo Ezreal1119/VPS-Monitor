@@ -37,7 +37,7 @@ export async function collectServices() {
   };
 
   if (process.platform !== 'linux') {
-    return { ...empty, note: '服务列表只在 Linux（systemd）上采集。' };
+    return { ...empty, note: 'Services are collected only on Linux (systemd).' };
   }
 
   const [running, failed, state] = await Promise.all([
@@ -47,12 +47,12 @@ export async function collectServices() {
   ]);
 
   if (running.missing || failed.missing) {
-    return { ...empty, note: '没有找到 systemctl。' };
+    return { ...empty, note: 'systemctl was not found.' };
   }
 
   const runningUnits = parseUnits(running.stdout);
   const failedUnits = parseUnits(failed.stdout);
-  const note = running.ok || running.stdout ? '' : (firstLine(running.stderr) || 'systemctl 失败');
+  const note = running.ok || running.stdout ? '' : (firstLine(running.stderr) || 'systemctl failed');
 
   return {
     available: true,

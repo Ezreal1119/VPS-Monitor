@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,15 +7,15 @@
   <link rel="stylesheet" href="/app.css">
 </head>
 <body>
-  <p id="boot" class="boot">正在读取本机状态…</p>
+  <p id="boot" class="boot">Loading this machine…</p>
   <div id="auth" class="auth hidden">
     <form id="token-form">
       <p class="eyebrow">VPS Monitor</p>
-      <h1>输入访问令牌</h1>
-      <p id="token-help" class="muted">这台监控要求令牌。请求头用 <span class="mono">X-Monitor-Token</span>。</p>
+      <h1>Enter access token</h1>
+      <p id="token-help" class="muted">This monitor requires a token. Send it in the <span class="mono">X-Monitor-Token</span> header.</p>
       <input id="token-input" type="password" autocomplete="off" placeholder="MONITOR_TOKEN" required>
       <p id="token-error" class="error"></p>
-      <button type="submit">进入</button>
+      <button type="submit">Continue</button>
     </form>
   </div>
   <main id="app" class="wrap hidden">

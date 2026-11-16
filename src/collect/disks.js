@@ -90,12 +90,12 @@ export async function collectDisks() {
         note: '',
       };
     }
-    return { available: false, mounts: [], note: firstLine(precise.stderr || fallback.stderr) || 'df 失败' };
+    return { available: false, mounts: [], note: firstLine(precise.stderr || fallback.stderr) || 'df failed' };
   }
 
   const result = await run('df', ['-P', '-k']);
   if (!result.ok) {
-    return { available: false, mounts: [], note: firstLine(result.stderr) || 'df 失败' };
+    return { available: false, mounts: [], note: firstLine(result.stderr) || 'df failed' };
   }
   return {
     available: true,

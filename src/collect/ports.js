@@ -93,15 +93,15 @@ export async function collectPorts() {
   if (process.platform === 'linux') {
     const result = await run('ss', ['-H', '-lntup']);
     if (result.missing) {
-      return { available: false, count: 0, listeners: [], note: '没有找到 ss。' };
+      return { available: false, count: 0, listeners: [], note: 'ss was not found.' };
     }
     if (!result.ok && !result.stdout) {
-      return { available: false, count: 0, listeners: [], note: firstLine(result.stderr) || 'ss 失败' };
+      return { available: false, count: 0, listeners: [], note: firstLine(result.stderr) || 'ss failed' };
     }
     const listeners = parseSs(result.stdout);
     const unnamed = listeners.length > 0 && listeners.every((item) => !item.process);
     const isRoot = typeof process.getuid === 'function' && process.getuid() === 0;
-    const note = unnamed && !isRoot ? '当前不是 root，看不到端口对应的进程名。' : '';
+    const note = unnamed && !isRoot ? 'Not running as root, so process names for ports are hidden.' : '';
     return { available: true, count: listeners.length, listeners, note };
   }
 
@@ -110,16 +110,16 @@ export async function collectPorts() {
       env: { LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8' },
     });
     if (!result.ok && !result.stdout) {
-      return { available: false, count: 0, listeners: [], note: firstLine(result.stderr) || 'lsof 失败' };
+      return { available: false, count: 0, listeners: [], note: firstLine(result.stderr) || 'lsof failed' };
     }
     const listeners = parseLsof(result.stdout);
     return {
       available: true,
       count: listeners.length,
       listeners,
-      note: '这是 macOS 的 TCP 监听。部署到 VPS 后改为 ss，并包含 UDP。',
+      note: 'These are macOS TCP listeners. On the VPS this uses ss and includes UDP.',
     };
   }
 
-  return { available: false, count: 0, listeners: [], note: '端口监听只在 Linux 上完整采集。' };
+  return { available: false, count: 0, listeners: [], note: 'Listening ports are fully collected only on Linux.' };
 }

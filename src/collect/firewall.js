@@ -1,7 +1,7 @@
 import { firstLine, run } from '../exec.js';
 
 const MAX_RULES = 80;
-const SECURITY_GROUP = '阿里云入站一般由安全组控制，安全组不在这台机器上，这一版不采集。';
+const SECURITY_GROUP = 'Inbound traffic on Aliyun is usually controlled by a security group. Security groups are not on this machine and are not collected in this version.';
 
 function pack(partial) {
   const rules = partial.rules || [];
@@ -26,7 +26,7 @@ function denied(backend, result) {
   return pack({
     backend,
     enabled: null,
-    summary: `检测到 ${backend}，但当前进程没有权限读取规则。用 root 跑这个服务即可。`,
+    summary: `Found ${backend}, but this process cannot read the rules. Run the service as root.`,
     note: firstLine(result.stderr || result.stdout),
   });
 }
@@ -64,8 +64,8 @@ export function parseUfwStatus(text) {
     backend: 'ufw',
     enabled,
     summary: enabled
-      ? `ufw 已启用，${rules.length} 条规则。`
-      : `ufw 已安装，但没有启用。${SECURITY_GROUP}`,
+      ? `ufw is active, ${rules.length} rules.`
+      : `ufw is installed but inactive. ${SECURITY_GROUP}`,
     rules,
   });
 }
@@ -90,11 +90,11 @@ export function parseFirewalldListAll(text) {
       return { action: 'allow', proto: proto || '', port: port || entry, from: zone };
     }),
   ];
-  const note = /^\s*rule\s+family=/m.test(text) ? '还有 rich rules，这一版没有展开。' : '';
+  const note = /^\s*rule\s+family=/m.test(text) ? 'There are rich rules. This version does not expand them.' : '';
   return pack({
     backend: 'firewalld',
     enabled: true,
-    summary: `firewalld 正在运行，区域 ${zone}。`,
+    summary: `firewalld is running, zone ${zone}.`,
     rules,
     note,
   });
@@ -123,8 +123,8 @@ export function parseNft(text) {
   }
   const enabled = inputPolicy === 'drop' || inputPolicy === 'reject' || rules.some((rule) => rule.action === 'deny');
   const summary = inputPolicy
-    ? `nftables 入站策略是 ${inputPolicy}。`
-    : '检测到 nftables 规则。';
+    ? `nftables input policy is ${inputPolicy}.`
+    : 'Found nftables rules.';
   return pack({ backend: 'nftables', enabled, summary, rules });
 }
 
@@ -150,7 +150,7 @@ export function parseIptables(text, family) {
     rules.push({
       action,
       proto,
-      port: port || '全部',
+      port: port || 'all',
       from,
       family,
     });
@@ -166,7 +166,7 @@ async function fromIptables() {
     return pack({
       backend: 'iptables',
       enabled: null,
-      summary: '读取 iptables 失败。',
+      summary: 'Failed to read iptables.',
       note: firstLine(v4.stderr),
     });
   }
@@ -177,12 +177,12 @@ async function fromIptables() {
   const policies = [parsed4.policy, parsed6.policy].filter(Boolean);
   const enabled = policies.some((item) => item !== 'ACCEPT') || rules.some((rule) => rule.action === 'deny');
   const summary = policies.length
-    ? `iptables INPUT 策略是 ${policies.join(' / ')}。`
-    : '检测到 iptables。';
+    ? `iptables INPUT policy is ${policies.join(' / ')}.`
+    : 'Found iptables.';
   return pack({
     backend: 'iptables',
     enabled,
-    summary: enabled ? summary : `${summary} 没有额外拦截。${SECURITY_GROUP}`,
+    summary: enabled ? summary : `${summary} No extra filtering. ${SECURITY_GROUP}`,
     rules,
   });
 }
@@ -191,14 +191,14 @@ export async function collectFirewall() {
   if (process.platform !== 'linux') {
     return pack({
       available: false,
-      summary: '防火墙只在 Linux 上采集。',
+      summary: 'The firewall is collected only on Linux.',
     });
   }
 
   const ufw = await run('ufw', ['status']);
   if (!ufw.missing) {
     if (isDenied(ufw)) return denied('ufw', ufw);
-    if (ufw.timedOut) return pack({ backend: 'ufw', enabled: null, summary: '读取 ufw 超时。' });
+    if (ufw.timedOut) return pack({ backend: 'ufw', enabled: null, summary: 'Timed out reading ufw.' });
     return parseUfwStatus(`${ufw.stdout}\n${ufw.stderr}`);
   }
 
@@ -210,7 +210,7 @@ export async function collectFirewall() {
       return pack({
         backend: 'firewalld',
         enabled: false,
-        summary: `firewalld 已安装，但没有运行。${SECURITY_GROUP}`,
+        summary: `firewalld is installed but not running. ${SECURITY_GROUP}`,
       });
     }
     const list = await run('firewall-cmd', ['--list-all']);
@@ -230,6 +230,6 @@ export async function collectFirewall() {
   return pack({
     backend: 'none',
     enabled: false,
-    summary: `没有检测到 ufw、firewalld、nftables 或 iptables。${SECURITY_GROUP}`,
+    summary: `No ufw, firewalld, nftables, or iptables found. ${SECURITY_GROUP}`,
   });
 }

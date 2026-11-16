@@ -6,14 +6,14 @@ let loading = false;
 let authOpen = false;
 let latest = null;
 
-const ACTION = { allow: '放行', deny: '拒绝', limit: '限制' };
+const ACTION = { allow: 'Allow', deny: 'Deny', limit: 'Limit' };
 const SYSTEM_STATE = {
-  running: '系统正常',
-  degraded: '有服务失败，系统处于降级',
-  maintenance: '维护中',
-  starting: '启动中',
-  stopping: '关闭中',
-  offline: '离线',
+  running: 'System healthy',
+  degraded: 'A service failed; the system is degraded',
+  maintenance: 'Maintenance',
+  starting: 'Starting',
+  stopping: 'Stopping',
+  offline: 'Offline',
 };
 
 document.getElementById('token-form').addEventListener('submit', (event) => {
@@ -60,9 +60,9 @@ function formatUptime(seconds) {
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  if (days > 0) return `${days} 天 ${hours} 小时`;
-  if (hours > 0) return `${hours} 小时 ${minutes} 分`;
-  return `${minutes} 分`;
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
 }
 
 function level(percent) {
@@ -107,7 +107,7 @@ function table(columns, rows, emptyText) {
   const body = document.createElement('tbody');
   if (!rows.length) {
     const row = document.createElement('tr');
-    row.append(el('td', { class: 'empty', colspan: String(columns.length) }, [emptyText || '没有数据']));
+    row.append(el('td', { class: 'empty', colspan: String(columns.length) }, [emptyText || 'No data']));
     body.append(row);
   } else {
     for (const item of rows) {
@@ -218,7 +218,7 @@ function render(data) {
     host.distro,
     host.kernel,
     host.arch,
-    host.uptimeSeconds != null ? `开机 ${formatUptime(host.uptimeSeconds)}` : '',
+    host.uptimeSeconds != null ? `up ${formatUptime(host.uptimeSeconds)}` : '',
   ].filter(Boolean).join(' · ') + (host.cpuModel ? ` · ${host.cpuModel}${speed}` : '');
 
   const pills = document.getElementById('pills');
@@ -226,21 +226,21 @@ function render(data) {
   const age = Math.max(0, Math.round((Date.now() - Date.parse(data.collectedAt)) / 1000));
   pills.append(el('div', { class: 'pill ok' }, [
     el('span', { class: 'dot' }),
-    el('span', { id: 'pill-text' }, [age < 2 ? '在线 · 刚刚更新' : `在线 · ${age} 秒前`]),
+    el('span', { id: 'pill-text' }, [age < 2 ? 'Online · just now' : `Online · ${age}s ago`]),
   ]));
   if (data.services?.systemState === 'degraded') {
-    pills.append(el('div', { class: 'pill bad' }, [el('span', { class: 'dot' }), '服务异常']));
+    pills.append(el('div', { class: 'pill bad' }, [el('span', { class: 'dot' }), 'Services degraded']));
   }
 
   const banner = document.getElementById('banner');
   const messages = [];
   if (data.agent?.platform && data.agent.platform !== 'linux') {
-    messages.push('当前不是 Linux。服务和防火墙要到 VPS 上才有完整数据，其余几项可以在这台机器上先看。');
+    messages.push('This machine is not Linux. Services and the firewall are complete only on the VPS. The other sections can be viewed here.');
   }
   const listenHost = String(data.agent?.listen || '').split(':')[0];
   const loopback = listenHost === '127.0.0.1' || listenHost === 'localhost' || listenHost === '::1';
   if (data.agent && data.agent.auth === false && !loopback) {
-    messages.push('没有设置 MONITOR_TOKEN，而且没有只听本机。先把令牌加上，再对外监听。');
+    messages.push('MONITOR_TOKEN is not set, and the server is not bound to localhost. Set a token before listening on a public address.');
     banner.className = 'banner bad';
   } else {
     banner.className = 'banner';
@@ -258,8 +258,8 @@ function render(data) {
 
   const foot = [];
   if (data.agent?.version) foot.push(`v${data.agent.version}`);
-  if (data.agent?.listen) foot.push(`监听 ${data.agent.listen}`);
-  foot.push(data.agent?.auth ? '已要求访问令牌' : '未设置访问令牌');
+  if (data.agent?.listen) foot.push(`listening on ${data.agent.listen}`);
+  foot.push(data.agent?.auth ? 'token required' : 'no token set');
   document.getElementById('foot').textContent = foot.join(' · ');
 }
 
@@ -275,33 +275,33 @@ function renderMetrics(data) {
 
   const root = document.getElementById('metrics');
   root.replaceChildren(
-    stat('CPU', metric(String(data.cpu?.usagePercent ?? '—'), '%'), `${cpuCount} 核`, data.cpu?.usagePercent),
+    stat('CPU', metric(String(data.cpu?.usagePercent ?? '—'), '%'), `${cpuCount} cores`, data.cpu?.usagePercent),
     stat(
-      '内存',
+      'Memory',
       metric(formatBytes(memory.used), ''),
       memory.total
-        ? `共 ${formatBytes(memory.total)}\n可用 ${formatBytes(memory.available)}${memory.swapTotal ? `\nswap ${formatBytes(memory.swapUsed)}` : ''}`
+        ? `of ${formatBytes(memory.total)}\nfree ${formatBytes(memory.available)}${memory.swapTotal ? `\nswap ${formatBytes(memory.swapUsed)}` : ''}`
         : '',
       memory.usedPercent,
     ),
     stat(
-      '磁盘',
+      'Disk',
       metric(rootDisk ? `${rootDisk.usedPercent}` : '—', rootDisk ? '%' : ''),
-      rootDisk ? `${rootDisk.mount}\n可用 ${formatBytes(rootDisk.available)}` : (data.disks?.note || ''),
+      rootDisk ? `${rootDisk.mount}\nfree ${formatBytes(rootDisk.available)}` : (data.disks?.note || ''),
       rootDisk ? rootDisk.usedPercent : null,
     ),
-    stat('负载', metric(load.length ? String(load[0]) : '—'), `5 分 ${load[1] ?? '—'} · 15 分 ${load[2] ?? '—'}`, null, loadTone),
+    stat('Load', metric(load.length ? String(load[0]) : '—'), `5m ${load[1] ?? '—'} · 15m ${load[2] ?? '—'}`, null, loadTone),
     stat(
-      '服务',
-      metric(services.available ? String(services.runningCount) : '—', services.available ? '运行' : ''),
-      services.available ? (failed ? `${failed} 个失败` : '没有失败的服务') : '仅 Linux',
+      'Services',
+      metric(services.available ? String(services.runningCount) : '—', services.available ? 'running' : ''),
+      services.available ? (failed ? `${failed} failed` : 'No failed services') : 'Linux only',
       null,
       services.available ? (failed ? 'bad' : 'ok') : '',
     ),
     stat(
-      '监听',
+      'Listeners',
       metric(data.ports?.available ? String(data.ports.count) : '—'),
-      data.ports?.available ? '个端口' : (data.ports?.note || ''),
+      data.ports?.available ? 'ports' : (data.ports?.note || ''),
     ),
   );
 }
@@ -323,22 +323,22 @@ function renderCharts(data) {
     }
     cpuCard.append(bars);
   } else if (cores.length > 32) {
-    cpuCard.append(el('p', { class: 'note' }, [`${cores.length} 核，图上只保留总使用率。`]));
+    cpuCard.append(el('p', { class: 'note' }, [`${cores.length} cores. The chart shows total usage only.`]));
   }
-  if (cpuHistory.length < 2) cpuCard.append(el('p', { class: 'note' }, ['采样中']));
+  if (cpuHistory.length < 2) cpuCard.append(el('p', { class: 'note' }, ['Sampling']));
 
   const netHistory = data.network?.history || [];
   const netCard = el('article', { class: 'chart' });
-  netCard.append(el('h2', {}, ['网络']));
+  netCard.append(el('h2', {}, ['Network']));
   netCard.append(sparkline([
     { color: '#8fd18a', values: netHistory.map((item) => item.rxRate) },
     { color: '#e6b15c', values: netHistory.map((item) => item.txRate) },
   ], { min: 0 }));
   const legend = el('p', { class: 'legend' });
-  legend.append(el('span', {}, [el('i', { class: 'swatch', style: 'background:#8fd18a' }), `接收 ${formatRate(data.network?.rxRate)}`]));
-  legend.append(el('span', {}, [el('i', { class: 'swatch', style: 'background:#e6b15c' }), `发送 ${formatRate(data.network?.txRate)}`]));
+  legend.append(el('span', {}, [el('i', { class: 'swatch', style: 'background:#8fd18a' }), `in ${formatRate(data.network?.rxRate)}`]));
+  legend.append(el('span', {}, [el('i', { class: 'swatch', style: 'background:#e6b15c' }), `out ${formatRate(data.network?.txRate)}`]));
   netCard.append(legend);
-  if (netHistory.length < 2) netCard.append(el('p', { class: 'note' }, ['采样中']));
+  if (netHistory.length < 2) netCard.append(el('p', { class: 'note' }, ['Sampling']));
 
   document.getElementById('charts').replaceChildren(cpuCard, netCard);
 }
@@ -347,17 +347,17 @@ function renderDisks(disks) {
   const rows = (disks?.mounts || []).map((item) => ({ ...item }));
   replaceSection(
     'disks',
-    '磁盘',
+    'Disks',
     disks?.note || '',
     disks?.available === false ? null : table([
-      { label: '挂载', value: (row) => row.mount },
-      { label: '文件系统', value: (row) => row.filesystem },
-      { label: '类型', value: (row) => row.type || '—' },
-      { label: '已用', num: true, value: (row) => formatBytes(row.used) },
-      { label: '可用', num: true, value: (row) => formatBytes(row.available) },
-      { label: '总量', num: true, value: (row) => formatBytes(row.total) },
-      { label: '使用率', num: true, value: (row) => usageCell(row.usedPercent) },
-    ], rows, '没有看到磁盘'),
+      { label: 'Mount', value: (row) => row.mount },
+      { label: 'Filesystem', value: (row) => row.filesystem },
+      { label: 'Type', value: (row) => row.type || '—' },
+      { label: 'Used', num: true, value: (row) => formatBytes(row.used) },
+      { label: 'Free', num: true, value: (row) => formatBytes(row.available) },
+      { label: 'Total', num: true, value: (row) => formatBytes(row.total) },
+      { label: 'Use', num: true, value: (row) => usageCell(row.usedPercent) },
+    ], rows, 'No disks found'),
   );
 }
 
@@ -365,16 +365,16 @@ function renderNetwork(network) {
   const rows = (network?.interfaces || []).map((item) => ({ ...item }));
   replaceSection(
     'network',
-    '网络',
+    'Network',
     '',
     table([
-      { label: '网卡', value: (row) => row.name },
-      { label: '地址', value: (row) => addresses(row.addresses) },
-      { label: '接收', num: true, value: (row) => formatBytes(row.rxBytes) },
-      { label: '发送', num: true, value: (row) => formatBytes(row.txBytes) },
-      { label: '接收速率', num: true, value: (row) => formatRate(row.rxRate) },
-      { label: '发送速率', num: true, value: (row) => formatRate(row.txRate) },
-    ], rows, '没有看到网卡'),
+      { label: 'Interface', value: (row) => row.name },
+      { label: 'Address', value: (row) => addresses(row.addresses) },
+      { label: 'Received', num: true, value: (row) => formatBytes(row.rxBytes) },
+      { label: 'Sent', num: true, value: (row) => formatBytes(row.txBytes) },
+      { label: 'Receive rate', num: true, value: (row) => formatRate(row.rxRate) },
+      { label: 'Send rate', num: true, value: (row) => formatRate(row.txRate) },
+    ], rows, 'No interfaces found'),
   );
 }
 
@@ -386,20 +386,20 @@ function renderServices(services) {
   const failed = (services?.failed || []).map((item) => ({ ...item, _class: 'bad' }));
   const running = services?.running || [];
   const columns = [
-    { label: '服务', value: (row) => serviceName(row.name) },
-    { label: '状态', value: (row) => row.state || '—' },
-    { label: '说明', value: (row) => row.description || '—' },
+    { label: 'Service', value: (row) => serviceName(row.name) },
+    { label: 'State', value: (row) => row.state || '—' },
+    { label: 'Description', value: (row) => row.description || '—' },
   ];
   const block = document.createElement('div');
   if (services?.available !== false) {
     if (failed.length) {
-      block.append(el('h2', {}, ['失败']));
+      block.append(el('h2', {}, ['Failed']));
       block.append(table(columns, failed));
     }
-    block.append(el('h2', {}, [`运行中 · ${services?.runningCount ?? running.length}`]));
-    block.append(table(columns, running, '没有正在运行的服务'));
+    block.append(el('h2', {}, [`Running · ${services?.runningCount ?? running.length}`]));
+    block.append(table(columns, running, 'No running services'));
   }
-  replaceSection('services', '服务', note, services?.available === false ? null : block);
+  replaceSection('services', 'Services', note, services?.available === false ? null : block);
 }
 
 function renderPorts(ports) {
@@ -409,20 +409,20 @@ function renderPorts(ports) {
   }));
   replaceSection(
     'ports',
-    '端口监听',
+    'Listening ports',
     ports?.note || '',
     ports?.available === false ? null : table([
-      { label: '协议', value: (row) => row.proto },
-      { label: '地址', value: (row) => row.address },
-      { label: '端口', num: true, value: (row) => String(row.port) },
-      { label: '进程', value: (row) => row.processText },
-    ], rows, '没有监听端口'),
+      { label: 'Protocol', value: (row) => row.proto },
+      { label: 'Address', value: (row) => row.address },
+      { label: 'Port', num: true, value: (row) => String(row.port) },
+      { label: 'Process', value: (row) => row.processText },
+    ], rows, 'No listening ports'),
   );
 }
 
 function renderFirewall(firewall) {
   const bits = [firewall?.summary || '', firewall?.note || ''];
-  if (firewall?.truncated) bits.push('只显示前 80 条。');
+  if (firewall?.truncated) bits.push('Showing the first 80 rules.');
   const rows = (firewall?.rules || []).map((rule) => ({
     ...rule,
     _class: rule.action === 'deny' ? 'bad' : '',
@@ -431,14 +431,14 @@ function renderFirewall(firewall) {
   }));
   replaceSection(
     'firewall',
-    '防火墙',
+    'Firewall',
     bits.filter(Boolean).join(' '),
     firewall?.available === false ? null : table([
-      { label: '动作', value: (row) => row.actionText },
-      { label: '协议', value: (row) => row.protoText },
-      { label: '端口', value: (row) => row.port || '—' },
-      { label: '来源', value: (row) => row.from || '—' },
-    ], rows, firewall?.enabled === false ? '没有启用的规则' : '没有读到规则'),
+      { label: 'Action', value: (row) => row.actionText },
+      { label: 'Protocol', value: (row) => row.protoText },
+      { label: 'Port', value: (row) => row.port || '—' },
+      { label: 'From', value: (row) => row.from || '—' },
+    ], rows, firewall?.enabled === false ? 'No enabled rules' : 'No rules read'),
   );
 }
 
@@ -447,7 +447,7 @@ function markDown() {
   if (!pill) return;
   const parent = pill.closest('.pill');
   if (parent) parent.className = 'pill bad';
-  pill.textContent = '中断';
+  pill.textContent = 'Offline';
 }
 
 async function load() {
@@ -460,7 +460,7 @@ async function load() {
       signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined,
     });
     if (response.status === 401) {
-      showAuth(token ? '令牌不对' : '需要访问令牌');
+      showAuth(token ? 'Wrong token' : 'Token required');
       return;
     }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -468,7 +468,7 @@ async function load() {
   } catch (error) {
     if (latest) markDown();
     else {
-      document.getElementById('boot').textContent = `读不到监控数据：${error.message}`;
+      document.getElementById('boot').textContent = `Could not load monitor data: ${error.message}`;
     }
   } finally {
     loading = false;
@@ -477,9 +477,9 @@ async function load() {
 
 setInterval(() => {
   const pill = document.getElementById('pill-text');
-  if (!latest || !pill || pill.textContent === '中断') return;
+  if (!latest || !pill || pill.textContent === 'Offline') return;
   const age = Math.max(0, Math.round((Date.now() - Date.parse(latest.collectedAt)) / 1000));
-  pill.textContent = age < 2 ? '在线 · 刚刚更新' : `在线 · ${age} 秒前`;
+  pill.textContent = age < 2 ? 'Online · just now' : `Online · ${age}s ago`;
 }, 1000);
 
 load();

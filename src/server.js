@@ -50,7 +50,7 @@ const types = {
 function readPort(raw) {
   const value = Number(raw);
   if (!Number.isInteger(value) || value < 1 || value > 65535) {
-    console.error('PORT 必须是 1 到 65535 的整数');
+    console.error('PORT must be an integer from 1 to 65535');
     process.exit(1);
   }
   return value;
@@ -164,7 +164,7 @@ async function handle(req, res) {
 
 server.on('error', (error) => {
   if (error.code === 'EADDRINUSE') {
-    console.error(`端口 ${port} 已被占用`);
+    console.error(`Port ${port} is already in use`);
     process.exit(1);
   }
   console.error(error);
@@ -174,5 +174,5 @@ server.on('error', (error) => {
 await sampler.ready;
 server.listen(port, host, () => {
   console.log(`VPS monitor  http://${host}:${port}`);
-  console.log(token ? '访问令牌：已要求' : '访问令牌：未设置');
+  console.log(token ? 'Access token: required' : 'Access token: not set');
 });
