@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VPS Monitor</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <p id="boot" class="boot">正在读取本机状态…</p>
+  <div id="auth" class="auth hidden">
+    <form id="token-form">
+      <p class="eyebrow">VPS Monitor</p>
+      <h1>输入访问令牌</h1>
+      <p id="token-help" class="muted">这台监控要求令牌。请求头用 <span class="mono">X-Monitor-Token</span>。</p>
+      <input id="token-input" type="password" autocomplete="off" placeholder="MONITOR_TOKEN" required>
+      <p id="token-error" class="error"></p>
+      <button type="submit">进入</button>
+    </form>
+  </div>
+  <main id="app" class="wrap hidden">
+    <header class="top">
+      <div>
+        <p class="eyebrow">VPS Monitor</p>
+        <h1 id="hostname">—</h1>
+        <p id="identity" class="muted"></p>
+      </div>
+      <div id="pills" class="pills"></div>
+    </header>
+    <p id="banner" class="banner hidden"></p>
+    <section id="metrics" class="metrics"></section>
+    <section id="charts" class="charts"></section>
+    <section id="disks" class="panel"></section>
+    <section id="network" class="panel"></section>
+    <section id="services" class="panel"></section>
+    <section id="ports" class="panel"></section>
+    <section id="firewall" class="panel"></section>
+    <footer id="foot" class="foot"></footer>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

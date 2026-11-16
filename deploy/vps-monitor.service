@@ -1,0 +1,17 @@
+[Unit]
+Description=VPS Monitor
+After=network.target
+
+[Service]
+# 用 root 跑，才能看到端口对应的进程和防火墙规则。
+# 令牌放在 /etc/vps-monitor.env，内容一行：MONITOR_TOKEN=一长串随机字符
+Environment=HOST=127.0.0.1
+Environment=PORT=8787
+EnvironmentFile=-/etc/vps-monitor.env
+WorkingDirectory=/opt/vps-monitor
+ExecStart=/usr/bin/env node src/server.js
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
